@@ -12,8 +12,6 @@ if(info["sysname"] == "Darwin") {j_indeces <- j_indeces[[1]]}
 if(info["nodename"] == "WIN02672") {j_indeces <- j_indeces[[2]]}
 if(info["nodename"] == "ISV-0587-W64") {j_indeces <- j_indeces[[3]]}
 if(info["nodename"] == "WIN03872") {j_indeces <- j_indeces[[4]]}
-
-Sys.info()
 ###---
 safe_scrape_scholar <- possibly(scrape_scholar, otherwise = tibble(),quiet = FALSE)
 
