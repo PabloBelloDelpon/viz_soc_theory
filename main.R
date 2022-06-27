@@ -1,13 +1,22 @@
+
 suppressMessages(library(tidyverse))
 source("scrape_scholar_function.R")
 
 ###--- Data
 jou_auth <- readRDS("journals_authors.RDS")
 
+###--- Split work between computers
+j_indeces <- split(1:nrow(jou_auth),f = c(1:4))
+if(info["sysname"] == "Darwin") {j_indeces <- j_indeces[[1]]}
+if(info["nodename"] == "WIN02672") {j_indeces <- j_indeces[[2]]}
+if(info["nodename"] == "ISV-0587-W64") {j_indeces <- j_indeces[[3]]}
+if(info["nodename"] == "WIN03872") {j_indeces <- j_indeces[[4]]}
+
+Sys.info()
 ###---
 safe_scrape_scholar <- possibly(scrape_scholar, otherwise = tibble(),quiet = FALSE)
 
-for(j in 1:nrow(jou_auth)){
+for(j in j_indeces){
   
   ###--- Params
   journal  <- jou_auth[j,] |> pull(journal)
