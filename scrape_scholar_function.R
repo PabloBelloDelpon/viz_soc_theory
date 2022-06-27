@@ -109,7 +109,7 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
       str_remove_all(years)
     
     
-    if(length(leftovers) == length(title)){
+    if(length(leftovers) == length(titles)){
       journals <- str_split(leftovers, "-") %>% 
         map_chr(2) %>% 
         str_extract_all("[:alpha:]*") %>% 
@@ -117,7 +117,9 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
         map(~paste(., collapse = " ")) %>% 
         unlist()
     }
-    else{journals <- rep(NA,10)}
+    else {
+      journals <- rep(NA,10)
+      }
     
     # Make data frame
     tbl <- data.frame(titles = titles, authors = authors, 
