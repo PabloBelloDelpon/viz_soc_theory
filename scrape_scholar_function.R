@@ -79,6 +79,7 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
     ###---
     # download.file(url, destfile = "scrapedpage.html", quiet=TRUE)
     # wp <- read_html(url)
+    wp <- read_html(url)
     # ###---
     
    wp <- 
