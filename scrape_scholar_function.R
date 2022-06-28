@@ -5,6 +5,8 @@ library(xml2)
 library(selectr)
 library(stringr)
 library(jsonlite)
+library(RSelenium)
+library(crayon)
 
 my_user_agent <- "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36"
 user_agents <- c(
@@ -82,16 +84,43 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
     wp <- read_html(url)
     # ###---
     
-   wp <- 
-     httr::GET(url, 
-               set_cookies(`_SMIDA` = "7cf9ea4bfadb60bbd0950e2f8f4c279d",
-                           `__utma` = "29983421.138599299.1413649536.1413649536.1413649536.1",
-                           `__utmb` = "29983421.5.10.1413649536",
-                           `__utmc` = "29983421",
-                           `__utmt` = "1",
-                           `__utmz` = "29983421.1413649536.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)"),
-               user_agent(user_agents[sample(1:length(user_agents),1)])) |>
-     read_html()
+   # wp <- 
+   #   httr::GET(url, 
+   #             set_cookies(`_SMIDA` = "7cf9ea4bfadb60bbd0950e2f8f4c279d",
+   #                         `__utma` = "29983421.138599299.1413649536.1413649536.1413649536.1",
+   #                         `__utmb` = "29983421.5.10.1413649536",
+   #                         `__utmc` = "29983421",
+   #                         `__utmt` = "1",
+   #                         `__utmz` = "29983421.1413649536.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)"),
+   #             user_agent(user_agents[sample(1:length(user_agents),1)])) |>
+   #   read_html()
+    
+    
+    ###--- Selenium
+    remDr$navigate(url)
+    Sys.sleep(5)
+    html <- remDr$getPageSource()[[1]]
+    wp <- read_html(html)
+    
+    
+    ###--- Check if there is a captcha
+    
+    is_captcha <- 
+      html_text(wp) |> 
+      str_detect("captcha")
+    if(is_captcha == TRUE){ 
+      readline(blue("There is a captcha, check the browser!"))
+      
+      remDr$navigate(url)
+      Sys.sleep(5)
+      html <- remDr$getPageSource()[[1]]
+      wp <- read_html(html)
+      
+      }
+    
+    ###---
+    
+    
     
     # Extract raw data
     titles <- rvest::html_text(rvest::html_nodes(wp, '.gs_rt'))
@@ -140,11 +169,11 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
       
       not_collected[length(not_collected) + 1] <- i
       print(paste("Google caught me, go to sleep at",Sys.time()))
-      Sys.sleep(60*60*24)
-      i <- e
+      #Sys.sleep(60*60*24)
+      #i <- e
     }
     
-    sleep <- floor(runif(1,min = 10,max = 14))
+    sleep <- floor(runif(1,min = 10,max = 120))
     print(paste("Finished", i, "/",length(urls), "- Sleeping for",sleep,"seconds"))
     Sys.sleep(sleep)
     
