@@ -5,6 +5,7 @@ library(xml2)
 library(selectr)
 library(stringr)
 library(jsonlite)
+library(crayon)
 
 
 
@@ -23,28 +24,9 @@ scrape_hits <- function(keyword,journal,lang,year_start = NA,year_end = NA) {
     httr::GET(first_page) |>
     read_html()
   
+
   
-  ###--- Check if there is a captcha
-  
-  is_captcha <- 
-    html_text(wp) |> 
-    str_detect("captcha")
-  if(is_captcha == TRUE){ 
-    readline(blue("There is a captcha, check the browser!"))
-    
-    remDr$navigate(url)
-    Sys.sleep(5)
-    html <- remDr$getPageSource()[[1]]
-    wp <- read_html(html)
-    
-  }
-  
-  ###---
-  
-  
-  
-  
-  
+
   # Number of hits 
   hits <- 
     wp |> 
