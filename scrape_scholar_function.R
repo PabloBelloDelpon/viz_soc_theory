@@ -6,7 +6,6 @@ library(selectr)
 library(stringr)
 library(jsonlite)
 library(RSelenium)
-library(crayon)
 
 my_user_agent <- "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36"
 user_agents <- c(
@@ -25,6 +24,7 @@ user_agents <- c(
 scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) {
   
   journal <- paste0(journal,collapse = "+")
+  if(journal == "rationality+&+society") {journal <- "rationality+and+society"}
   
   ###--- Construct the URL
   header <- "https://scholar.google.com/scholar?start="
@@ -36,17 +36,43 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
   # download.file(first_page, destfile = "scrapedpage.html", quiet=TRUE)
   # wp <- read_html("scrapedpage.html")
   ###---
+  # 
+  # wp <- 
+  #   httr::GET(first_page, 
+  #           set_cookies(`_SMIDA` = "7cf9ea4bfadb60bbd0950e2f8f4c279d",
+  #                       `__utma` = "29983421.138599299.1413649536.1413649536.1413649536.1",
+  #                       `__utmb` = "29983421.5.10.1413649536",
+  #                       `__utmc` = "29983421",
+  #                       `__utmt` = "1",
+  #                       `__utmz` = "29983421.1413649536.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)"),
+  #           user_agent(user_agents[sample(1:length(user_agents),1)])) |>
+  #   read_html()
   
-  wp <- 
-    httr::GET(first_page, 
-            set_cookies(`_SMIDA` = "7cf9ea4bfadb60bbd0950e2f8f4c279d",
-                        `__utma` = "29983421.138599299.1413649536.1413649536.1413649536.1",
-                        `__utmb` = "29983421.5.10.1413649536",
-                        `__utmc` = "29983421",
-                        `__utmt` = "1",
-                        `__utmz` = "29983421.1413649536.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)"),
-            user_agent(user_agents[sample(1:length(user_agents),1)])) |>
-    read_html()
+  ###--- RSelenium
+  
+  remDr$navigate(first_page)
+  Sys.sleep(5)
+  html <- remDr$getPageSource()[[1]]
+  wp <- read_html(html)
+  
+  
+  ###--- Check if there is a captcha
+  
+  is_captcha <- 
+    html_text(wp) |> 
+    str_detect("captcha")
+  if(is_captcha == TRUE){ 
+    readline("There is a captcha, check the browser!")
+    
+    remDr$navigate(first_page)
+    Sys.sleep(5)
+    html <- remDr$getPageSource()[[1]]
+    wp <- read_html(html)
+    
+  }
+  
+  ###---
+  
   
   
   # Number of hits 
@@ -108,7 +134,7 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
       html_text(wp) |> 
       str_detect("captcha")
     if(is_captcha == TRUE){ 
-      readline(blue("There is a captcha, check the browser!"))
+      readline("There is a captcha, check the browser!")
       
       remDr$navigate(url)
       Sys.sleep(5)

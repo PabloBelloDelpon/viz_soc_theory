@@ -15,7 +15,16 @@ if(info["nodename"] == "WIN03872") {j_indeces <- j_indeces[[4]]}
 ###---
 safe_scrape_scholar <- possibly(scrape_scholar, otherwise = tibble(),quiet = FALSE)
 
-for(j in j_indeces){
+
+###--- Open browser
+poss_rsDriver <- possibly(rsDriver, otherwise = "error")
+rD <- rsDriver(browser="firefox", port=4544L, verbose=F)
+remDr <- rD[["client"]]
+
+###---
+
+
+for(j in j_indeces[10:length(j_indeces)]){
   
   ###--- Params
   journal  <- jou_auth[j,] |> pull(journal)
