@@ -7,21 +7,10 @@ library(stringr)
 library(jsonlite)
 library(RSelenium)
 
-my_user_agent <- "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36"
-user_agents <- c(
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36"
-)
 
 
 
-
-scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) {
+scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA,page) {
   
   journal <- paste0(journal,collapse = "+")
   if(journal == "rationality+&+society") {journal <- "rationality+and+society"}
@@ -32,24 +21,8 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
   if (!is.na(year_start) & !is.na(year_end)){query <- paste0(query, "&as_ylo=",year_start,"&as_yhi=",year_end)}
   first_page <- paste0(header,0,query)
   
-  ###---
-  # download.file(first_page, destfile = "scrapedpage.html", quiet=TRUE)
-  # wp <- read_html("scrapedpage.html")
-  ###---
-  # 
-  # wp <- 
-  #   httr::GET(first_page, 
-  #           set_cookies(`_SMIDA` = "7cf9ea4bfadb60bbd0950e2f8f4c279d",
-  #                       `__utma` = "29983421.138599299.1413649536.1413649536.1413649536.1",
-  #                       `__utmb` = "29983421.5.10.1413649536",
-  #                       `__utmc` = "29983421",
-  #                       `__utmt` = "1",
-  #                       `__utmz` = "29983421.1413649536.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)"),
-  #           user_agent(user_agents[sample(1:length(user_agents),1)])) |>
-  #   read_html()
-  
+ 
   ###--- RSelenium
-  
   remDr$navigate(first_page)
   Sys.sleep(5)
   html <- remDr$getPageSource()[[1]]
@@ -57,7 +30,6 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
   
   
   ###--- Check if there is a captcha
-  
   is_captcha <- 
     html_text(wp) |> 
     str_detect("captcha")
@@ -72,7 +44,6 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
   }
   
   ###---
-  
   
   
   # Number of hits 
@@ -91,37 +62,18 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
   
   
   # construct url for next pages
+  next_page <- page + 1
   start_from <- 0:floor(hits/10)*10
+  start_from <- start_from[next_page:length(start_from)]
   urls <- paste0(header,start_from,query)
   
-  
-  # Iterate over scholar pages
-  res <- list()
-  not_collected <- c()
-  
+
+  # Iterate over URLs
+
   for(i in 1:length(urls)){
 
-    
     url <- urls[i]
-    
-    ###---
-    # download.file(url, destfile = "scrapedpage.html", quiet=TRUE)
-    # wp <- read_html(url)
-    wp <- read_html(url)
-    # ###---
-    
-   # wp <- 
-   #   httr::GET(url, 
-   #             set_cookies(`_SMIDA` = "7cf9ea4bfadb60bbd0950e2f8f4c279d",
-   #                         `__utma` = "29983421.138599299.1413649536.1413649536.1413649536.1",
-   #                         `__utmb` = "29983421.5.10.1413649536",
-   #                         `__utmc` = "29983421",
-   #                         `__utmt` = "1",
-   #                         `__utmz` = "29983421.1413649536.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)"),
-   #             user_agent(user_agents[sample(1:length(user_agents),1)])) |>
-   #   read_html()
-    
-    
+
     ###--- Selenium
     remDr$navigate(url)
     Sys.sleep(5)
@@ -130,7 +82,7 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
     
     
     ###--- Check if there is a captcha
-    
+
     is_captcha <- 
       html_text(wp) |> 
       str_detect("captcha")
@@ -161,8 +113,8 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
     
     
     leftovers <- authors_years %>% 
-      str_remove_all(authors) %>% 
-      str_remove_all(years)
+      str_remove_all(authors[str_length(authors) > 0]) %>% 
+      str_remove_all(years[str_length(years) > 0])
     
     
     if(length(leftovers) == length(titles)){
@@ -183,36 +135,20 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA) 
                       cited = cited,
                       abstract = abstract,
                       stringsAsFactors = FALSE)
-    res[[i]] <- tbl
+    
+    
     
     print(paste(nrow(tbl), "articles collected"))
     
-    if(nrow(tbl) == 0) {
-      
-      if(i %in% not_collected == FALSE){
-        e <- i - 1
-      }
-      
-      not_collected[length(not_collected) + 1] <- i
-      print(paste("Google caught me, go to sleep at",Sys.time()))
-      #Sys.sleep(60*60*24)
-      #i <- e
+    if(nrow(tbl) > 0){
+      save_to <- paste0("temp/page_",next_page,".RDS")
+      saveRDS(tbl,save_to)
+      next_page <- next_page + 1
     }
     
-    sleep <- floor(runif(1,min = 10,max = 120))
+    sleep <- floor(runif(1,min = 5,max = 20))
     print(paste("Finished", i, "/",length(urls), "- Sleeping for",sleep,"seconds"))
     Sys.sleep(sleep)
     
   }
-
-  
- res <- res[which(sapply(res,function(x)is.data.frame(x)) == TRUE)]
- res <- 
-    bind_rows(res) |> 
-    as_tibble() |> 
-   mutate(expected_hits = hits)
- 
- out <- list("data" = res,"meta" = not_collected)
-  
-  return(out)
 }
