@@ -11,7 +11,7 @@ library(RSelenium)
 
 
 scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA,page) {
-  
+  consecutive_0 <- 0
   journal <- paste0(journal,collapse = "+")
   if(journal == "rationality+&+society") {journal <- "rationality+and+society"}
   
@@ -64,6 +64,7 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA,p
   # construct url for next pages
   next_page <- page + 1
   start_from <- 0:floor(hits/10)*10
+  total_pages <<- length(start_from)
   start_from <- start_from[next_page:length(start_from)]
   urls <- paste0(header,start_from,query)
   
@@ -144,6 +145,15 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA,p
       save_to <- paste0("temp/page_",next_page,".RDS")
       saveRDS(tbl,save_to)
       next_page <- next_page + 1
+      consecutive_0 <- 0
+    }
+    
+    if(nrow(tbl) == 0) {
+      consecutive_0 <- consecutive_0 + 1
+      print(paste("Consecutive zeros:" , consecutive_0))
+      if(consecutive_0 == 3) {
+        stop("No hits in the last 3 pages")
+      }
     }
     
     sleep <- floor(runif(1,min = 5,max = 20))
@@ -151,4 +161,7 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA,p
     Sys.sleep(sleep)
     
   }
+  
+  return("done")
+  
 }

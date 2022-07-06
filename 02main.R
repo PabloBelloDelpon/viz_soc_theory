@@ -1,14 +1,20 @@
 
 suppressMessages(library(tidyverse))
+library(here)
 source("scrape_scholar_function.R")
 
+
+###--- Files & folders
+output_folder <- "output_data"
+
+
 ###--- Data
-jou_auth <- readRDS("journals_authors.RDS")
+jou_auth <- readRDS(here("input_data", "journals_authors.RDS"))
 
 
 
 ###--- Done
-done <- list.files("data")
+done <- list.files(output_folder)
 done <- str_remove(done,".RDS")
 done <- str_split(done,"_")
 done <- lapply(done, function(x) {
@@ -26,18 +32,22 @@ jou_auth <-
   anti_join(done)
 
 
+###--- remove poetics
+jou_auth <- jou_auth |> filter(journal_abb != "Poetics")
+
+
 ###---
-safe_scrape_scholar <- possibly(scrape_scholar, otherwise = tibble(),quiet = FALSE)
+safe_scrape_scholar <- possibly(scrape_scholar, otherwise = "error",quiet = FALSE)
 
 
 ###--- Open browser
-rD <- rsDriver(browser="firefox", port=4543L, verbose=F)
+rD <- rsDriver(browser="firefox", port=4544L, verbose=F)
 remDr <- rD[["client"]]
 
 ###---
 
 
-for(j in 1:nrow(jou_auth)){
+for(j in 2:nrow(jou_auth)){
   
   ###--- Params
   journal  <- jou_auth[j,] |> pull(journal)
@@ -49,7 +59,7 @@ for(j in 1:nrow(jou_auth)){
   lang <- "en"
   
   output <- paste0(c(journal_abb,keyword),collapse = "_")
-  output <- paste0("data/",output,".RDS")
+  output <- here(output_folder,paste0(output,".RDS"))
   
   
   ###--- Check if some pages have been collected already
@@ -59,18 +69,25 @@ for(j in 1:nrow(jou_auth)){
 
   print(paste("Starting collection for",keyword,"in",journal_abb))
   print(paste("Pages collected:", last_page))
-  res <- scrape_scholar(journal = journal, keyword = keyword, lang = lang,page = last_page)
-  
+  total_pages <- c()
+  res <- safe_scrape_scholar(journal = journal, keyword = keyword, lang = lang,page = last_page)
   
   all_pages <- list.files("temp",full.names = TRUE)
-  
-  tbl <- 
-    all_pages |> 
-    map_dfr(readRDS) |> 
-    as_tibble()
-  
-  saveRDS(tbl,output)
-  file.remove(all_pages)
+
+  if(res != "error") {
+    
+    tbl <- 
+      all_pages |> 
+      map_dfr(readRDS) |> 
+      as_tibble()
+    
+    saveRDS(tbl,output)
+    file.remove(all_pages)
+    
+  }
+  else{
+    j <- j - 1
+  }
 }
 
 
