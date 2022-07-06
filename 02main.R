@@ -1,4 +1,5 @@
 
+###--- Libraries
 suppressMessages(library(tidyverse))
 library(here)
 source("scrape_scholar_function.R")
@@ -41,7 +42,7 @@ safe_scrape_scholar <- possibly(scrape_scholar, otherwise = "error",quiet = FALS
 
 
 ###--- Open browser
-rD <- rsDriver(browser="firefox", port=4544L, verbose=F)
+rD <- rsDriver(browser= "firefox", port= 4541L, verbose= TRUE)
 remDr <- rD[["client"]]
 
 ###---
@@ -59,22 +60,29 @@ for(j in 2:nrow(jou_auth)){
   lang <- "en"
   
   output <- paste0(c(journal_abb,keyword),collapse = "_")
+  temp_output <- paste0("temp/",output)
+  if(dir.exists(temp_output) == FALSE){dir.create(temp_output)}
   output <- here(output_folder,paste0(output,".RDS"))
   
   
   ###--- Check if some pages have been collected already
-  pages <- list.files("temp")
+  pages <- list.files(temp_output)
   pages <- as.numeric(str_extract(pages,regex("[0-9]+")))
   last_page <- ifelse(length(pages) == 0,0,max(pages))
 
   print(paste("Starting collection for",keyword,"in",journal_abb))
   print(paste("Pages collected:", last_page))
   total_pages <- c()
-  res <- safe_scrape_scholar(journal = journal, keyword = keyword, lang = lang,page = last_page)
+  res <- safe_scrape_scholar(journal = journal, 
+                             keyword = keyword, 
+                             lang = lang,
+                             page = last_page,
+                             temp_output = temp_output)
   
-  all_pages <- list.files("temp",full.names = TRUE)
 
-  if(res != "error") {
+  if(res == "done") {
+    
+    all_pages <- list.files(temp_output,full.names = TRUE)
     
     tbl <- 
       all_pages |> 
@@ -83,10 +91,7 @@ for(j in 2:nrow(jou_auth)){
     
     saveRDS(tbl,output)
     file.remove(all_pages)
-    
-  }
-  else{
-    j <- j - 1
+    unlink(temp_output, recursive = TRUE)     
   }
 }
 

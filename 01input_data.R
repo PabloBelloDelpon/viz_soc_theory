@@ -1,7 +1,7 @@
 ###--- create input data
 
 ###--- Journals
-journals_etienne <- read.table("journal_list_etienne.txt",sep = ",")
+journals_etienne <- read.table("input_data/journal_list_etienne.txt",sep = ",")
 journals_etienne <- as.vector(t(as.matrix(journals_etienne)))
 journals_etienne <- journals_etienne[c(1,2,15,18,31,32)]
 
@@ -9,6 +9,8 @@ journals_others <- c("annual review of sociology","rationality & society",
                      "european sociological review")
 journals <- c(journals_etienne,journals_others)
 names(journals) <- c("AJS", "ASR", "Poetics","SF","ST","SoE","ARS","R&S","ESR") 
+tbl <- tibble(journal = journals, abb = names(journals))
+saveRDS(tbl, "input_data/journal_names.RDS")
 journals <- strsplit(journals," ")
 
 ###--- Authors

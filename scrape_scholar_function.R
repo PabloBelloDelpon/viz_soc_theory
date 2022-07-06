@@ -6,11 +6,12 @@ library(selectr)
 library(stringr)
 library(jsonlite)
 library(RSelenium)
+source("helper_functions.R")
 
 
 
-
-scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA,page) {
+scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA,page,temp_output) {
+  
   consecutive_0 <- 0
   journal <- paste0(journal,collapse = "+")
   if(journal == "rationality+&+society") {journal <- "rationality+and+society"}
@@ -24,44 +25,18 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA,p
  
   ###--- RSelenium
   remDr$navigate(first_page)
-  Sys.sleep(5)
+  Sys.sleep(2)
   html <- remDr$getPageSource()[[1]]
   wp <- read_html(html)
   
-  
   ###--- Check if there is a captcha
-  is_captcha <- 
-    html_text(wp) |> 
-    str_detect("captcha")
-  if(is_captcha == TRUE){ 
-    readline("There is a captcha, check the browser!")
-    
-    remDr$navigate(first_page)
-    Sys.sleep(5)
-    html <- remDr$getPageSource()[[1]]
-    wp <- read_html(html)
-    
-  }
+  check_captcha(wp)
   
-  ###---
+
+  ###--- Number of hits 
+  hits <- check_n_hits(wp)
   
-  
-  # Number of hits 
-  hits <- 
-    wp |> 
-    html_element('form[method=post] + div div > div:contains("results")') |>
-    html_text() |>
-    str_split("results") 
-  
-  hits <- 
-    unlist(hits)[1] |> 
-    str_extract_all("(\\d+)") |>
-    unlist() |> 
-    paste(collapse = "") |> 
-    as.integer()
-  
-  
-  # construct url for next pages
+  ###--- Construct URL for next pages
   next_page <- page + 1
   start_from <- 0:floor(hits/10)*10
   total_pages <<- length(start_from)
@@ -69,93 +44,49 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA,p
   urls <- paste0(header,start_from,query)
   
 
-  # Iterate over URLs
-
+  ###--- Iterate over URLs
   for(i in 1:length(urls)){
 
     url <- urls[i]
 
     ###--- Selenium
     remDr$navigate(url)
-    Sys.sleep(5)
+    Sys.sleep(3)
     html <- remDr$getPageSource()[[1]]
     wp <- read_html(html)
     
     
     ###--- Check if there is a captcha
+    check_captcha(wp)
+    
 
-    is_captcha <- 
-      html_text(wp) |> 
-      str_detect("captcha")
-    if(is_captcha == TRUE){ 
-      readline("There is a captcha, check the browser!")
-      
-      remDr$navigate(url)
-      Sys.sleep(5)
-      html <- remDr$getPageSource()[[1]]
-      wp <- read_html(html)
-      
-      }
-    
-    ###---
-    
-    
-    
-    # Extract raw data
-    titles <- rvest::html_text(rvest::html_nodes(wp, '.gs_rt'))
-    authors_years <- rvest::html_text(rvest::html_nodes(wp, '.gs_a'))
-    
-    abstract <- wp |> html_nodes('.gs_rs') |> html_text()
-    cited <- wp |> html_nodes('.gs_fl > a:nth-child(3)') |> html_text() |> str_remove("Cited by ") |> as.integer()
-    
-    # Process data
-    authors <- gsub('^(.*?)\\W+-\\W+.*', '\\1', authors_years, perl = TRUE)
-    years <- gsub('^.*(\\d{4}).*', '\\1', authors_years, perl = TRUE)
-    
-    
-    leftovers <- authors_years %>% 
-      str_remove_all(authors[str_length(authors) > 0]) %>% 
-      str_remove_all(years[str_length(years) > 0])
-    
-    
-    if(length(leftovers) == length(titles)){
-      journals <- str_split(leftovers, "-") %>% 
-        map_chr(2) %>% 
-        str_extract_all("[:alpha:]*") %>% 
-        map(function(x) x[x != ""]) %>% 
-        map(~paste(., collapse = " ")) %>% 
-        unlist()
-    }
-    else {
-      journals <- rep(NA,10)
-      }
-    
-    # Make data frame
-    tbl <- data.frame(titles = titles, authors = authors, 
-                      years = years, journals = journals, 
-                      cited = cited,
-                      abstract = abstract,
-                      stringsAsFactors = FALSE)
-    
-    
-    
+    ###--- Process the html
+    tbl <- process_wp(wp)
     print(paste(nrow(tbl), "articles collected"))
+
     
     if(nrow(tbl) > 0){
-      save_to <- paste0("temp/page_",next_page,".RDS")
+      save_to <- paste0(temp_output,"/page_",next_page,".RDS")
       saveRDS(tbl,save_to)
       next_page <- next_page + 1
       consecutive_0 <- 0
     }
     
-    if(nrow(tbl) == 0) {
+    else if(nrow(tbl) == 0) {
+      
       consecutive_0 <- consecutive_0 + 1
       print(paste("Consecutive zeros:" , consecutive_0))
+      
       if(consecutive_0 == 3) {
-        stop("No hits in the last 3 pages")
+        end <- fun() # Ask me if the collection is finished
+        
+        if(end == TRUE) return("done")
+        else if(end == FALSE) return("error")
+        
       }
     }
     
+    ###--- Go to sleep between pages
     sleep <- floor(runif(1,min = 5,max = 20))
     print(paste("Finished", i, "/",length(urls), "- Sleeping for",sleep,"seconds"))
     Sys.sleep(sleep)
