@@ -8,10 +8,8 @@ source("scrape_scholar_function.R")
 ###--- Files & folders
 output_folder <- "output_data"
 
-
 ###--- Data
 jou_auth <- readRDS(here("input_data", "journals_authors.RDS"))
-
 
 
 ###--- Done
@@ -32,7 +30,6 @@ jou_auth <-
   mutate(journal_abb = names(journal)) |> 
   anti_join(done)
 
-
 ###--- remove poetics
 jou_auth <- jou_auth |> filter(journal_abb != "Poetics")
 
@@ -42,13 +39,13 @@ safe_scrape_scholar <- possibly(scrape_scholar, otherwise = "error",quiet = FALS
 
 
 ###--- Open browser
-rD <- rsDriver(browser= "firefox", port= 4541L, verbose= TRUE)
+rD <- rsDriver(browser= "firefox", port= 4544L, verbose= FALSE)
 remDr <- rD[["client"]]
 
 ###---
 
 
-for(j in 2:nrow(jou_auth)){
+for(j in 1:nrow(jou_auth)){
   
   ###--- Params
   journal  <- jou_auth[j,] |> pull(journal)

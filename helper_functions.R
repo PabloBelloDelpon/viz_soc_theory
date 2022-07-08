@@ -66,6 +66,7 @@ process_wp <- function(wp){
     str_remove_all(authors[str_length(authors) > 0]) %>% 
     str_remove_all(years[str_length(years) > 0])
   
+  leftovers <- ifelse(str_length(leftovers) == 0,"-",leftovers)
   
   if(length(leftovers) == length(titles)){
     journals <- str_split(leftovers, "-") %>% 
