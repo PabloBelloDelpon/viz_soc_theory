@@ -1,28 +1,21 @@
+###--- Plot settings
+plot_set <- function(font = "futura", data){
+  
+  showtext_auto()
+  showtext_opts(dpi = 320)
+  
+  font_add(family = font, regular = "/Users/pablobellodelpon/Library/Fonts/Futura Light font.ttf")
+  
 
-###--- Data Viz
-
-###--- Helper functions
-library(silgelib)
-
-###--- Set a theme for plots
-
-
-theme_figs <- function(font_family){
-  #theme_roboto(base_size = 20)
-  theme_minimal(base_size = 30) +
-    theme(
-      plot.title = element_text(size = rel(1.5), hjust = .5,vjust = 2),
-      plot.subtitle = element_text(size = rel(.8), hjust = .5),
-      axis.title.x = element_text(size = rel(1)),
-      #axis.title.y = element_text(size = rel(1)),
-      axis.title.y = element_blank(),
-      axis.text.x = element_text(size = rel(1)),
-      #axis.text.y.left = element_text(size = rel(1.2)),
-      axis.text.y = element_blank(),
-      #axis.text.y.right = element_text(size = rel(0.9)),
-      legend.position = "none",
-      panel.grid = element_blank(),
-      text = element_text(family = font_family)
-    )
+  theme_set(
+    theme_minimal() +
+      theme(text = element_text(family = font,size = 23),
+            strip.text = element_text(size = 23,face = "bold"),
+            plot.title = element_text(hjust = .5),
+            plot.background = element_rect(fill = "white", color = "white"),
+            plot.caption = element_text(hjust = 0, face= "italic")
+      ))
+  
+  
 }
 

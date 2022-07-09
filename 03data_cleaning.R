@@ -68,49 +68,52 @@ st <-
   filter(journal_abb == "ST") |> 
   filter(str_detect(journals,regex("^sociological theory$")) == TRUE)
 
-st |> count(therist)
+st |> count(theorist)
 
 data <- data |> filter(journal_abb != "ST") 
 data <- data |> bind_rows(st)
 
 
-###---
+###--- 
+classical <- c("Weber", "Durkheim")
+contemp <- c("Bourdieu","Parsons","Goffman")
+analytical_soc <- c("Merton","Boudon","Coleman")
+general <- c("AJS","ARS","ASR","ESR","SF")
+field <- c("R&S","SoE","ST")
 
+
+data <- 
+  data |> 
+  mutate(theorist_type = case_when(theorist %in% classical == TRUE ~ "classical",
+                                   theorist %in% contemp == TRUE ~ "modern",
+                                   theorist %in% analytical_soc == TRUE ~ "analytical sociology"
+  ),
+  journal_type = ifelse(journal_abb %in% general,"general","field")) |> 
+  mutate(theorist_type = str_to_title(theorist_type),
+         theorist_type = as_factor(theorist_type))
+
+
+
+
+
+#################
+###--- Issues with Bourdieu AJS 2002 (year in which he died)
+
+data <- data |> mutate(journals = na_if(journals,""))
+
+data_bourdieu_2002 <- 
+  data |> 
+  filter(theorist == "Bourdieu", years == 2002, journal_abb == "AJS")
+
+data <- data |> anti_join(data_bourdieu_2002)
+data_bourdieu_2002 <- data_bourdieu_2002 |> drop_na(journals)
+data <- data |> bind_rows(data_bourdieu_2002) 
+
+
+
+#################
 saveRDS(data, output_file)
 
-###---
-
-journals <- data |> distinct(journal_abb) |> pull()
-
-tbl <- 
-  data |> 
-  count(journal_abb, journals) |> 
-  arrange(journal_abb,desc(n)) |> 
-  group_by(journal_abb) |> 
-  group_split()
-
-
-View(tbl[[8]])
-
-# View(data |>
-#        filter(journal_abb == "SF") |> 
-#        count(theorist, journals) )
-#   
 
 
 
-###--- Describe
-data |> 
-  count(theorist,journal_abb) |> 
-  arrange(journal_abb)
-
-
-
-
-data |> 
-  group_by(titles) |>
-  mutate(n = n(),
-         n_t = n_distinct(theorist)) |> 
-  arrange(desc(n))
-  count(theorist) |> 
-  arrange(desc(n))

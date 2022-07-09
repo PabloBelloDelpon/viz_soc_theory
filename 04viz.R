@@ -5,6 +5,8 @@ library(MetBrewer)
 library(sysfonts)
 library(showtext)
 library(ggnewscale)
+library(cowplot)
+source("helpers_data_viz.R")
 
 
 ###--- Files and folders 
@@ -17,95 +19,43 @@ journal_names_file <- "input_data/journal_names.RDS"
 data <- readRDS(input_file)
 journal_names <- readRDS(journal_names_file)
 
+###--- Check the data
 
-###---
-theorist_selection <- c("Weber", "Parsons","Goffman","Bourdieu")
-journal_selection <- c("AJS","ASR","ST","SoE")
-classical <- c("Weber", "Durkheim")
-contemp <- c("Bourdieu","Parsons","Goffman")
-analytical_soc <- c("Merton","Boudon","Coleman")
-general <- c("AJS","ARS","ASR","ESR","SF")
-field <- c("R&S","SoE","ST")
+data <- data |> drop_na(cited)
 
-
-tbl <- 
-  data |> 
-  mutate(theorist_type = case_when(theorist %in% classical == TRUE ~ "classical",
-                                   theorist %in% contemp == TRUE ~ "modern",
-                                   theorist %in% analytical_soc == TRUE ~ "analytical sociology"
-                                   ),
-         journal_type = ifelse(journal_abb %in% general,"general","field"))
-
-  
-  
-
-###---
-tbl |> 
+data |> 
   distinct(theorist,journal_abb) |> 
   count(theorist)
 
-###--- First plot. General 
-tbl2 <- 
-  tbl |> 
-  #drop_na(cited) |>  # there are some weird cases for Bourdieu in 2002 (year in which he), revise this 
-  distinct(abstract,.keep_all = TRUE) |> 
-  count(journal_type, theorist_type, journal_abb,theorist,years)
 
 
-tbl2 |> count(journal_abb,theorist)
+###--- Graphic settings
 
+plot_set()
 
-###--- Plot settings
-showtext_auto()
-showtext_opts(dpi = 320)
-font <- "futura"
-font_add(family = font, regular = "/Users/pablobellodelpon/Library/Fonts/Futura Light font.ttf")
-
+###--- Colors for theorists
 colors <- met.brewer(name = "Cross",n = length(unique(data$theorist)))
-colors <- scale_color_manual(values = colors)
+scale_1 <- scale_color_manual(values = colors)
 
-c <- paste0(unique(tbl2$journal_abb),collapse = ", ")
-c <- paste0("Journals: ",c)
 
-theme_set(
-  theme_minimal() +
-  theme(text = element_text(family = font,size = 17),
-        strip.text = element_text(size = 17,face = "bold"),
-        plot.title = element_text(hjust = .5),
-        plot.background = element_rect(fill = "white", color = "white"),
-        plot.caption = element_text(hjust = 0, face= "italic")
-  ))
+###--- Caption with journal abbreviations
+caption <- paste0(unique(data$journal_abb),collapse = ", ")
+caption <- paste0("Journals: ",caption)
 
 
 
-
-###--- By type of theorist
-
-tbl2 |> 
-  group_by(theorist,years) |> 
-  summarise(theorist_type = unique(theorist_type),
-            n = sum(n),
-            .groups = "drop") |> 
-  group_by(theorist) |> 
-  mutate(n = rollmean(x = n,k = 4,fill = NA)) |> 
-  ungroup() |> 
-  ggplot(aes(years,n,group = theorist, color = theorist)) +
-  geom_line() +
-  labs(title = "Theorist popularity",
-       caption = paste(c,"\nSliding window of 4 years"),
-       color = "",
-       x = "",
-       y = "# Articles") +
-  facet_grid(~ theorist_type)
-
+###--- Count theorist - year observations 
+data_counts <- 
+  data |> 
+  count(journal_type, theorist_type, journal_abb,theorist,years)
 
 
 
 ###--- By Journal
 
 ###--- Transform the data
-tbl3 <-
-  tbl2 |> 
+data_plot1 <-
+  data_counts |> 
   left_join(journal_names |> rename(journal_abb = abb)) |> 
   ungroup() |> 
   mutate(id = paste(journal_abb,theorist)) |> 
@@ -113,21 +63,20 @@ tbl3 <-
   mutate(n = rollmean(x = n,k = 5,fill = NA))
 
 
-
+colors
 
 ###--- Plot
-(plot2 <- 
-  tbl3 |> 
+(plot1 <- 
+  data_plot1 |> 
   ggplot(aes(years,n,group = id, color = theorist)) +
   geom_line() +
   labs(title = "Popularity of (some) sociological theorists by type of journal",
-       #caption = paste(c,"\nSliding window of 4 years"),
+       caption = paste(caption,"\nSliding window of 4 years"),
        color = "",
        x = "",
        y = "# Articles") +
   facet_wrap(~ journal,scales = "free_y") +
-  colors)
-
+  scale_1)
 
 
 # ggsave(paste0(output_folder,"/plot_1.png"),dpi=320)  
@@ -135,16 +84,17 @@ tbl3 <-
 
 
 
-
 ###--- By type of Journal and type of theorist
 
-tbl4 <- 
-  tbl3 |> 
+data_plot2 <- 
+  data_plot1 |> 
   group_by(theorist_type) |> 
   group_split() 
 
+scale_2 <- setNames(colors[1:length(unique(data$theorist))], unique(data$theorist))
 
-plots <- lapply(tbl4, function(x){
+
+plots <- lapply(data_plot2, function(x){
   x |> 
     ggplot(aes(years,n,group = id, color = theorist)) +
     geom_line() +
@@ -153,32 +103,24 @@ plots <- lapply(tbl4, function(x){
          color = "",
          x = "",
          y = "# Articles") +
+    scale_color_manual(values = scale_2[which(names(scale_2) %in% unique(x$theorist))]) +
     facet_wrap(~ journal,scales = "free_y")
   })
 
-poster <- cowplot::plot_grid(plotlist = plots,nrow = 3)
+plot_grid(plotlist = plots,nrow = 3) 
 
 ggsave(paste0(output_folder,"/plot_2.png"),dpi=320,width = 27,height = 40,units = "cm")  
-showtext_auto(FALSE)
-
-
-
-
-
-###################
-
 
 tbl5 <-
-  tbl2 |> 
+  data_counts |> 
   group_by(theorist,years) |> 
   summarise(theorist_type = unique(theorist_type),
             n = sum(n),
             .groups = "drop") |> 
   group_by(theorist) |> 
   mutate(n = rollmean(x = n,k = 4,fill = NA)) |> 
-  ungroup() |> 
-  mutate(theorist_type = str_to_title(theorist_type),
-         theorist_type = as_factor(theorist_type))
+  ungroup() 
+  
 
 
 tbl5_split <- split(tbl5, tbl5$theorist_type)
@@ -201,7 +143,7 @@ ggplot(mapping = aes(x = years, y = n)) +
   }) +
   facet_wrap(~ theorist_type) +
   labs(title = "The Evolution of Sociological Theory",
-       caption = paste(c,"\nSliding window of 4 years"),
+       caption = paste(caption,"\nSliding window of 4 years"),
        color = "",
        x = "",
        y = "# Articles")
