@@ -1,9 +1,16 @@
 
 library(igraph)
 library(tidyverse)
+library(GGally)
+library(cowplot)
+library(sysfonts)
+library(showtext)
+library(ggraph)
+source("helpers_data_viz.R")
 
 ###--- Files and folders 
 input_file <- "viz_soc_theory_data.RDS"
+output_folder <- "data_viz"
 
 
 ###--- Read the data
@@ -28,7 +35,7 @@ data_2 |>
  facet_wrap(~ journal,scales = "free_y")
 
 
-
+######################  PLOT 1 ######################  
 ###----  By Journal 
 
 edge_list <- 
@@ -57,7 +64,6 @@ for(i in 1:length(edge_list)) {
   title(unique(edge_list[[i]]$journal),col.main="Black")
 }
 
-
 ###---- By Decade
 
 edge_list <- 
@@ -69,12 +75,16 @@ edge_list <-
   group_by(decade) |> 
   group_split()
 
+
+######################  PLOT 2 ######################  
+
 layout(matrix(1:length(edge_list), nrow = 3,byrow = TRUE))
 
 for(i in 1:length(edge_list)) {
   
+  x <- edge_list[[i]]
   
-  mat <- as.matrix(edge_list[[i]] |> select(pub_id,theorist))
+  mat <- as.matrix(x |> select(pub_id,theorist))
   
   g <- igraph::graph_from_edgelist(mat)
   V(g)$type <- bipartite_mapping(g)$type
@@ -89,9 +99,63 @@ for(i in 1:length(edge_list)) {
   )
   
   title(unique(edge_list[[i]]$decade),col.main="Black")
+  
 }
 
-title("evo",col.main="Black")
+dev.off()
 
 
-layout(matrix(c(1,2,3,4,1,5,3,6),ncol=2),heights=c(1,3,1,3))
+######################  PLOT 3 ######################  
+###---- By Decade
+network_plot_set()
+
+plots <- list()
+
+for(i in 1:length(edge_list)) {
+  
+  x <- edge_list[[i]]
+  mat <- as.matrix(x |> select(pub_id,theorist))
+  
+  g <- igraph::graph_from_edgelist(mat)
+  V(g)$type <- bipartite_mapping(g)$type
+  projected_g <- bipartite_projection(g, multiplicity = TRUE)
+  
+  
+  V(projected_g$proj2)$color<- FALSE
+  if ("Bourdieu" %in% names(V(projected_g$proj2)) == TRUE) V(projected_g$proj2)["Bourdieu"]$color<- TRUE
+  
+  plots[[i]] <- 
+    ggraph(projected_g$proj2,layout = "fr") +
+    geom_edge_link(aes(width = weight), color = "grey70", alpha = .5) +
+    scale_edge_width(range = c(.5,4)) +
+    geom_node_text(aes(label = name, color = color), size = 5, repel = FALSE) +
+    labs(title = unique(edge_list[[i]]$decade)) +
+    scale_color_manual(values = c("black","red"))
+  
+}
+
+
+
+(plots <- plot_grid(plotlist = plots))
+
+
+title <- ggdraw() + 
+  draw_label("Co-citation network of sociological theorists by decade",
+             fontface = 'bold',
+             hjust = .5,
+             fontfamily = "futura",
+             size = 23) +
+  theme(
+    plot.background = element_rect(fill = "white", color = "white")
+    )
+
+
+  plot_grid(title, plots,
+  ncol = 1,
+  # rel_heights values control vertical title margins
+  rel_heights = c(0.1, 1)
+)
+
+ggsave(paste0(output_folder,"/plot_network_decades.png"),dpi = 320)  
+
+

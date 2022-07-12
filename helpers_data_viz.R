@@ -1,5 +1,5 @@
 ###--- Plot settings
-plot_set <- function(font = "futura", data){
+plot_set <- function(font = "futura"){
   
   showtext_auto()
   showtext_opts(dpi = 320)
@@ -16,6 +16,30 @@ plot_set <- function(font = "futura", data){
             plot.caption = element_text(hjust = 0, face= "italic")
       ))
   
+  
+}
+
+
+
+###--- Plot settings
+network_plot_set <- function(font = "futura"){
+  
+  showtext_auto()
+  showtext_opts(dpi = 320)
+  
+  font_add(family = font, regular = "/Users/pablobellodelpon/Library/Fonts/Futura Light font.ttf")
+  
+  
+  theme_set(
+    theme(text = element_text(family = font,
+                              size = 23,
+                              margin = margin(b = 10)), # Move the title up
+        panel.grid = element_blank(), 
+        legend.position = "none",
+        plot.title = element_text(size = 18, hjust = .5),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white", color = "white"))
+    )
   
 }
 

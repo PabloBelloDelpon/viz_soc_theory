@@ -113,7 +113,6 @@ data <- data |> bind_rows(data_bourdieu_2002)
 
 
 #################
-
 data <- 
   data |> 
   left_join(journal_names |> rename(journal_abb = abb)) 
@@ -124,7 +123,13 @@ data <- data |> drop_na(cited)
 ###--- REMOVE [ CITATION ]
 data <- data |> filter(str_detect(titles, "CITATION") == FALSE)
 
+###--- 
+data <- 
+  data |> 
+  filter(theorist != "Bourdieu" | years > 1970) |> 
+  filter(theorist != "Coleman" | years > 1955) 
 
+  
 saveRDS(data, output_file)
 
 
