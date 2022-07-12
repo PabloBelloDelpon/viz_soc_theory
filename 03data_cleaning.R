@@ -4,11 +4,12 @@ suppressMessages(library(tidyverse))
 
 ###--- Files and folders
 output_file <- "viz_soc_theory_data.RDS"
-
-
+journal_names_file <- "input_data/journal_names.RDS"
 
 
 ###--- Import data
+journal_names <- readRDS(journal_names_file) |> mutate(journal = str_to_title(journal))
+
 files <- list.files("output_data",full.names = TRUE)
 
 data <- lapply(files,function(x){
@@ -76,7 +77,7 @@ data <- data |> bind_rows(st)
 
 ###--- 
 classical <- c("Weber", "Durkheim")
-contemp <- c("Bourdieu","Parsons","Goffman")
+modern <- c("Bourdieu","Parsons","Goffman")
 analytical_soc <- c("Merton","Boudon","Coleman")
 general <- c("AJS","ARS","ASR","ESR","SF")
 field <- c("R&S","SoE","ST")
@@ -85,7 +86,7 @@ field <- c("R&S","SoE","ST")
 data <- 
   data |> 
   mutate(theorist_type = case_when(theorist %in% classical == TRUE ~ "classical",
-                                   theorist %in% contemp == TRUE ~ "modern",
+                                   theorist %in% modern == TRUE ~ "modern",
                                    theorist %in% analytical_soc == TRUE ~ "analytical sociology"
   ),
   journal_type = ifelse(journal_abb %in% general,"general","field")) |> 
@@ -112,6 +113,18 @@ data <- data |> bind_rows(data_bourdieu_2002)
 
 
 #################
+
+data <- 
+  data |> 
+  left_join(journal_names |> rename(journal_abb = abb)) 
+
+###--- REMOVE NON-CITED PUBS
+data <- data |> drop_na(cited)
+
+###--- REMOVE [ CITATION ]
+data <- data |> filter(str_detect(titles, "CITATION") == FALSE)
+
+
 saveRDS(data, output_file)
 
 
