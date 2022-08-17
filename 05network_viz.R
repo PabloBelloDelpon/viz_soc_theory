@@ -35,37 +35,39 @@ data_2 |>
  facet_wrap(~ journal,scales = "free_y")
 
 
-######################  PLOT 1 ######################  
-###----  By Journal 
+# ######################  PLOT 1 ######################  
+# ###----  By Journal 
+# 
+# edge_list <- 
+#   data_2 |> 
+#   ungroup() |> 
+#   select(pub_id,theorist,journal) |> 
+#   unnest(theorist) |>
+#   group_by(journal) |> 
+#   group_split()
+# 
+# layout(matrix(1:length(edge_list), ncol = 3))
+# 
+# for(i in 1:length(edge_list)) {
+#   
+#   
+#   mat <- as.matrix(edge_list[[i]] |> select(pub_id,theorist))
+#   
+#   g <- igraph::graph_from_edgelist(mat)
+#   V(g)$type <- bipartite_mapping(g)$type
+#   projected_g <- bipartite_projection(g, multiplicity = TRUE)
+#   
+#   plot(projected_g$proj2,
+#        edge.width = E(projected_g$proj2)$weight/max(E(projected_g$proj2)$weight)*5,
+#        )
+#   
+#   title(unique(edge_list[[i]]$journal),col.main="Black")
+# }
 
-edge_list <- 
-  data_2 |> 
-  ungroup() |> 
-  select(pub_id,theorist,journal) |> 
-  unnest(theorist) |>
-  group_by(journal) |> 
-  group_split()
 
-layout(matrix(1:length(edge_list), ncol = 3))
 
-for(i in 1:length(edge_list)) {
-  
-  
-  mat <- as.matrix(edge_list[[i]] |> select(pub_id,theorist))
-  
-  g <- igraph::graph_from_edgelist(mat)
-  V(g)$type <- bipartite_mapping(g)$type
-  projected_g <- bipartite_projection(g, multiplicity = TRUE)
-  
-  plot(projected_g$proj2,
-       edge.width = E(projected_g$proj2)$weight/max(E(projected_g$proj2)$weight)*5,
-       )
-  
-  title(unique(edge_list[[i]]$journal),col.main="Black")
-}
 
 ###---- By Decade
-
 edge_list <- 
   data_2 |> 
   ungroup() |>
@@ -75,6 +77,7 @@ edge_list <-
   group_by(decade) |> 
   group_split()
 
+names(edge_list) <- sapply(edge_list, function(x) nrow(x))
 
 ######################  PLOT 2 ######################  
 
@@ -129,7 +132,7 @@ for(i in 1:length(edge_list)) {
     geom_edge_link(aes(width = weight), color = "grey70", alpha = .5) +
     scale_edge_width(range = c(.5,4)) +
     geom_node_text(aes(label = name, color = color), size = 5, repel = FALSE) +
-    labs(title = unique(edge_list[[i]]$decade)) +
+    labs(title = paste0(unique(edge_list[[i]]$decade),"'s\nN = ",names(edge_list)[i])) +
     scale_color_manual(values = c("black","red"))
   
 }

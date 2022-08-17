@@ -91,3 +91,19 @@ process_wp <- function(wp){
   
 }
 
+
+###--- Put together the pages (temp files) into one when collection is finished
+make_output_file <- function(temp_folder,output_file) {
+  
+  all_pages <- list.files(temp_folder,full.names = TRUE)
+  
+  tbl <- 
+    all_pages |> 
+    map_dfr(readRDS) |> 
+    as_tibble()
+  
+  saveRDS(tbl,output_file)
+  file.remove(all_pages)
+  unlink(temp_folder, recursive = TRUE)   
+  
+}

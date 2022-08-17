@@ -3,14 +3,13 @@
 suppressMessages(library(tidyverse))
 library(here)
 source("scrape_scholar_function.R")
-
+source("helper_functions.R")
 
 ###--- Files & folders
-output_folder <- "output_data"
+output_folder <- "output_data2"
 
 ###--- Data
 jou_auth <- readRDS(here("input_data", "journals_authors.RDS"))
-
 
 ###--- Done
 done <- list.files(output_folder)
@@ -18,8 +17,9 @@ done <- str_remove(done,".RDS")
 done <- str_split(done,"_")
 done <- lapply(done, function(x) {
   journal_abb <- x[1]
-  author <- x[2]
-  tibble(journal_abb,author)
+  author_last_name <- x[2]
+  journal_site <- x[3]
+  tibble(journal_abb,author_last_name,journal_site)
 }) |> 
   bind_rows()
        
@@ -27,74 +27,65 @@ done <- lapply(done, function(x) {
 ###--- remove already collected rows
 jou_auth <- 
   jou_auth |> 
-  mutate(journal_abb = names(journal)) |> 
   anti_join(done)
-
-###--- remove poetics
-jou_auth <- jou_auth |> filter(journal_abb != "Poetics")
-
-
-###---
-safe_scrape_scholar <- possibly(scrape_scholar, otherwise = "error",quiet = FALSE)
 
 
 ###--- Open browser
-rD <- rsDriver(browser= "firefox", port= 4544L, verbose= FALSE)
+rD <- rsDriver(browser= "firefox", port= 4547L, verbose= FALSE)
 remDr <- rD[["client"]]
 
 ###---
 
 
+
 for(j in 1:nrow(jou_auth)){
   
   ###--- Params
-  journal  <- jou_auth[j,] |> pull(journal)
-  journal_abb <- names(journal)
-  journal <- journal[[1]]
-  keyword <- jou_auth[j,] |> pull(author)
-  year_start <- NA
-  year_end <- NA
+  journal  <- jou_auth[[j,"journal_name"]]
+  journal_abb  <- jou_auth[[j,"journal_abb"]]
+  keyword <- jou_auth[[j,"author_last_name"]]
+  year_start <- jou_auth[[j,"journal_year_start"]]
+  year_end <- jou_auth[[j,"journal_year_end"]]
+  site <- jou_auth[[j,"journal_site"]]
   lang <- "en"
-  
-  output <- paste0(c(journal_abb,keyword),collapse = "_")
+
+  ###--- Create output folder
+  output <- jou_auth[[j,"output"]]
   temp_output <- paste0("temp/",output)
   if(dir.exists(temp_output) == FALSE){dir.create(temp_output)}
   output <- here(output_folder,paste0(output,".RDS"))
-  
   
   ###--- Check if some pages have been collected already
   pages <- list.files(temp_output)
   pages <- as.numeric(str_extract(pages,regex("[0-9]+")))
   last_page <- ifelse(length(pages) == 0,0,max(pages))
 
-  print(paste("Starting collection for",keyword,"in",journal_abb))
+  print(paste("Starting collection for",keyword,"in",journal_abb, "site:",site))
   print(paste("Pages collected:", last_page))
   total_pages <- c()
   res <- safe_scrape_scholar(journal = journal, 
                              keyword = keyword, 
                              lang = lang,
+                             year_start = year_start,
+                             year_end = year_end,
                              page = last_page,
-                             temp_output = temp_output)
+                             temp_output = temp_output,
+                             site = site)
   
 
   if(res == "done") {
-    
-    all_pages <- list.files(temp_output,full.names = TRUE)
-    
-    tbl <- 
-      all_pages |> 
-      map_dfr(readRDS) |> 
-      as_tibble()
-    
-    saveRDS(tbl,output)
-    file.remove(all_pages)
-    unlink(temp_output, recursive = TRUE)     
+    make_output_file(temp_folder = temp_output,
+                     output_file = output)     
+  }
+  
+  else if(res == "error") {
+        stop()
   }
 }
 
-
 remDr$close() # Close the client
 rD$server$stop() # Close the server
+
 
 
 

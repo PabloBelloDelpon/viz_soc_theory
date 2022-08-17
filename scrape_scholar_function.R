@@ -11,16 +11,18 @@ source("helper_functions.R")
 
 
 
-scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA,page,temp_output) {
+scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_end = NA,page,temp_output,site) {
   
   
   consecutive_0 <- 0 # To count consecutive pages with 0 articles on them
   
   ###--- Construct the URL
-  journal <- paste0(journal,collapse = "+") # URL bersion of journal name
-  if(journal == "rationality+&+society") {journal <- "rationality+and+society"} # An exception
+  journal <- str_replace_all(journal," ","+") # URL bersion of journal name
   header <- "https://scholar.google.com/scholar?start=" 
-  query <- paste0(header,"&q=+-author:",keyword,"+source:%22",journal,"%22+",keyword,"&hl=",lang,"&as_sdt=0,5") 
+  query <- paste0("&as_vis=1&q=+-author:",keyword,
+                  "+source:%22",journal,"%22+",
+                  "site%3A",site,"+",
+                  keyword,"&hl=",lang,"&as_sdt=0,5") 
   if (!is.na(year_start) & !is.na(year_end)){query <- paste0(query, "&as_ylo=",year_start,"&as_yhi=",year_end)}
   first_page <- paste0(header,0,query)
   
@@ -96,3 +98,8 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_rend = NA,p
   return("done")
   
 }
+
+###--- Safe function
+safe_scrape_scholar <- possibly(scrape_scholar, otherwise = "error",quiet = FALSE)
+
+

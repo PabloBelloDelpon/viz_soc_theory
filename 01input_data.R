@@ -1,24 +1,55 @@
-###--- create input data
+###--- Create input data
 
-###--- Journals
-journals_etienne <- read.table("input_data/journal_list_etienne.txt",sep = ",")
-journals_etienne <- as.vector(t(as.matrix(journals_etienne)))
-journals_etienne <- journals_etienne[c(1,2,15,18,31,32)]
 
-journals_others <- c("annual review of sociology","rationality & society",
-                     "european sociological review")
-journals <- c(journals_etienne,journals_others)
-names(journals) <- c("AJS", "ASR", "Poetics","SF","ST","SoE","ARS","R&S","ESR") 
-tbl <- tibble(journal = journals, abb = names(journals))
-saveRDS(tbl, "input_data/journal_names.RDS")
-journals <- strsplit(journals," ")
+###--- Libraries
+library(tidyverse)
+
+###--- Journals 
+
+  journal_tbl <- 
+    tribble(~journal_abb, ~journal_name, ~journal_type,
+            "ASR","American Sociological Review","general",
+            "SoE","Sociology of Education","subfield",
+            "AJS","American Journal of Sociology","general",
+            "ST","Sociological Theory","general")
+  # others <- c("Sociological Methods and Research", "Social Problems", "Rationality and Society")
+ 
+###--- Journal sites
+  journal_tbl2 <- 
+    tribble(~journal_abb, ~journal_site, ~journal_year_start,~journal_year_end,
+          "AJS","journals.uchicago.edu",1895,2022,
+          "ASR","journals.sagepub.com",2004,2022,
+          "ASR","jstor.org",1936,2003,
+          "SoE","journals.sagepub.com",2004,2022,
+          "SoE","jstor.org",1963,2003,
+          "ST","journals.sagepub.com",1997,2022,
+          "ST","jstor.org",1983,1996)
+  
+###--- Join them 
+  journal_tbl <- 
+    journal_tbl |> 
+    left_join(journal_tbl2)
+
 
 ###--- Authors
-authors <- c("Bourdieu","Parsons","Boudon","Merton","Coleman","Goffman","Weber","Durkheim")
+  authors_tbl <- 
+    tribble(~author_first_name, ~author_last_name,~author_type, ~author_year_born, ~author_year_death,
+            "Max","Weber","classic",1864,1920,
+            "Emile","Durkheim","classic",1858,1917,
+            "Georg","Simmel","classic",1858,1918,
+            "Talcott","Parsons","canon",1902,1979,
+            "Robert K.","Merton","canon",1910,2003,
+            "James S.","Coleman","modern",1926,1995,
+            "Pierre","Bourdieu","modern",1930,2002)
 
+  
 ###--- Put journals and authors together
-
-expand.grid("journal" = journals,"author" = authors) |> 
-  as_tibble() |> 
-  mutate(author = as.character(author)) |> 
-  saveRDS("journals_authors.RDS")
+  data_tbl <- 
+    expand.grid("journal_name" = unique(journal_tbl$journal_name),"author_last_name" = authors_tbl$author_last_name) |> 
+    as_tibble() |> 
+    left_join(journal_tbl) |>
+    left_join(authors_tbl) |> 
+    rowwise() |> 
+    mutate(output = paste0(c(journal_abb,author_last_name,journal_site),collapse = "_"))
+  
+  saveRDS(data_tbl,"input_data/journals_authors.RDS")
