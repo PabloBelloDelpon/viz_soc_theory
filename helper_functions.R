@@ -32,7 +32,7 @@ check_n_hits <- function(wp){
 
 ###--- Check if there is a captcha 
 
-check_captcha <- function(wp){
+check_captcha <- function(wp,fp){
   
   is_captcha <- 
     html_text(wp) |> 
@@ -41,7 +41,7 @@ check_captcha <- function(wp){
   if(is_captcha == TRUE){ 
     readline("There is a captcha, check the browser!")
     
-    remDr$navigate(first_page)
+    remDr$navigate(fp)
     Sys.sleep(5)
     html <- remDr$getPageSource()[[1]]
     wp <- read_html(html)
