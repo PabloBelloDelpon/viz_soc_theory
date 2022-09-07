@@ -3,8 +3,8 @@ suppressMessages(library(tidyverse))
 
 
 ###--- Files and folders
-output_file <- "viz_soc_theory_data2.RDS"
-input_data <- "output_data2"
+output_file <- "final_data/viz_soc_theory_data.RDS"
+input_data <- "output_data"
 original_data <- "input_data/journals_authors.RDS"
 
 ###--- Import data
@@ -16,16 +16,16 @@ names(files) <- n
 ###--- Load files (into a single tibble)
 data <- 
   files |> 
-  map_dfr(readRDS,.id = "output") 
+  map_dfr(readRDS,.id = "output") |> 
+  mutate(output = str_remove(output, "output_data/"))
 
 
-###--- Merge with previos data
+###--- Merge with input data
 orig_tbl <- readRDS(original_data) 
 
 data <- 
   data |> 
   left_join(orig_tbl)
-
 
 ###--- Clean up data
 data <- 
@@ -47,6 +47,13 @@ data <-
   distinct(titles,.keep_all = TRUE) |> 
   ungroup()
 
+
+###--- Remove citations before their PhD
+data <- 
+  data |> 
+  filter(!(author_last_name == "Coleman" & years < 1955)) |> 
+  filter(!(author_last_name == "Parsons" & years < 1927)) |> 
+  filter(!(author_last_name == "Merton" & years < 1936))
 
 
 

@@ -10,9 +10,7 @@ source("helpers_data_viz.R")
 
 
 ###--- Files and folders 
-input_file <- "viz_soc_theory_data.RDS"
-input_file <- "viz_soc_theory_data2.RDS"
-
+input_file <- "final_data/viz_soc_theory_data.RDS"
 output_folder <- "data_viz"
 
 
@@ -63,7 +61,7 @@ data_plot1 <-
   data_plot1 |> 
   ggplot(aes(years,n,group = id, color = author_last_name)) +
   geom_line() +
-  labs(title = "Popularity of (some) sociological theorists by type of journal",
+  labs(title = "Popularity of (some) sociological theorists by journal",
        caption = paste(caption,"\nSliding window of 4 years"),
        color = "",
        x = "",
@@ -72,17 +70,17 @@ data_plot1 <-
   scale_1)
 
 
-# ggsave(paste0(output_folder,"/plot_1.png"),dpi=320)  
-# showtext_auto(FALSE)
+ggsave(paste0(output_folder,"/plot_1.png"),dpi=320)  
+#showtext_auto(FALSE)
 
-############################ PLOT 1.5 ############################ 
+############################ PLOT 2 ############################ 
 ###--- By Journal  (single Journal)
 
 ###--- Pick a Journal
 journal <- unique(data_plot1$journal_name)[4]
 
 
-(plot1_5 <- 
+(plot2 <- 
    data_plot1 |> 
    filter(journal_name == journal) |> 
    ggplot(aes(years,n,color = author_last_name)) +
@@ -98,12 +96,11 @@ journal <- unique(data_plot1$journal_name)[4]
          text = element_text(size = 10)
          ))
 
-ggsave(paste0(output_folder,"/plot_1_5.png"),dpi=320)  
+ggsave(paste0(output_folder,"/plot_2.png"),dpi=320)  
 
 
 
-############################ PLOT 2 ############################ 
-
+############################ PLOT 3 ############################ 
 ###--- By type of Journal and type of theorist
 
 data_plot2 <- 
@@ -127,13 +124,13 @@ plots <- lapply(data_plot2, function(x){
     facet_wrap(~ journal_name,scales = "free_y",ncol = 3)
   })
 
-plot <- plot_grid(plotlist = plots,nrow = 3) 
+plot_3 <- plot_grid(plotlist = plots,nrow = 3) 
 
-ggsave(paste0(output_folder,"/plot_2.png"),dpi=320,width = 27,height = 40,units = "cm")  
+ggsave(paste0(output_folder,"/plot_3.png"),dpi=320,width = 27,height = 40,units = "cm")  
 
 
 
-############################ PLOT 3 ############################ 
+############################ PLOT 4 ############################ 
 
 tbl5 <-
   data_counts |> 
@@ -171,7 +168,7 @@ ggplot(mapping = aes(x = years, y = n)) +
        x = "",
        y = "# Articles")
 
-ggsave(paste0(output_folder,"/plot_3.png"),dpi=320)  
+ggsave(paste0(output_folder,"/plot_4.png"),dpi=320)  
 
 
 ###--- Measure segmentation 

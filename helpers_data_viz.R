@@ -32,11 +32,11 @@ network_plot_set <- function(font = "futura"){
   
   theme_set(
     theme(text = element_text(family = font,
-                              size = 23,
+                              size = 25,
                               margin = margin(b = 10)), # Move the title up
         panel.grid = element_blank(), 
         legend.position = "none",
-        plot.title = element_text(size = 18, hjust = .5),
+        plot.title = element_text(size = 25, hjust = .5),
         panel.background = element_rect(fill = "white"),
         plot.background = element_rect(fill = "white", color = "white"))
     )

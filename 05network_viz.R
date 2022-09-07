@@ -9,8 +9,7 @@ library(ggraph)
 source("helpers_data_viz.R")
 
 ###--- Files and folders 
-input_file <- "viz_soc_theory_data.RDS"
-input_file <- "viz_soc_theory_data2.RDS"
+input_file <- "final_data/viz_soc_theory_data.RDS"
 output_folder <- "data_viz"
 
 
@@ -78,10 +77,11 @@ edge_list <-
   data_2 |> 
   ungroup() |>
   mutate(decade = years - years %% 10) |> 
+  filter(decade < 2020 & decade > 1920) |> 
   select(paper_id,theorist,decade) |> 
   unnest(theorist) |>
   group_by(decade) |> 
-  group_split()
+  group_split() 
 
 names(edge_list) <- sapply(edge_list, function(x) nrow(x))
 
@@ -141,13 +141,12 @@ for(i in 1:length(edge_list)) {
     ggraph(projected_g$proj2,layout = "fr") +
     geom_edge_link(aes(width = weight), color = "grey70", alpha = .5) +
     scale_edge_width(range = c(.5,4)) +
-    geom_node_text(aes(label = name, color = color), size = 5, repel = FALSE) +
+    geom_node_text(aes(label = name, color = color), size = 7, repel = FALSE) +
     labs(title = paste0(unique(edge_list[[i]]$decade),"'s\nN = ",names(edge_list)[i])) +
     scale_color_manual(values = c("black","red"))
   
 }
-
-
+names(plots) <- unique(data.table::rbindlist(edge_list)$decade)
 
 (plots <- plot_grid(plotlist = plots))
 
@@ -157,7 +156,7 @@ title <- ggdraw() +
              fontface = 'bold',
              hjust = .5,
              fontfamily = "futura",
-             size = 23) +
+             size = 50) +
   theme(
     plot.background = element_rect(fill = "white", color = "white")
     )
