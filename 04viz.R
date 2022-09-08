@@ -16,7 +16,10 @@ output_folder <- "data_viz"
 
 ###--- Read the data
 data <- readRDS(input_file)
-
+data  <- 
+  data |> 
+  filter(! author_last_name %in% c("Coleman","Du Bois","Simmel"))
+  
 ###--- Create article id
 title_id <- data |> distinct(titles, journal_abb) |> arrange(desc(titles)) |> mutate(paper_id = row_number())
 
@@ -77,7 +80,7 @@ ggsave(paste0(output_folder,"/plot_1.png"),dpi=320)
 ###--- By Journal  (single Journal)
 
 ###--- Pick a Journal
-journal <- unique(data_plot1$journal_name)[4]
+journal <- unique(data_plot1$journal_name)[1]
 
 
 (plot2 <- 
@@ -143,13 +146,26 @@ tbl5 <-
   mutate(n = rollmean(x = n,k = 5,fill = NA)) |> 
   ungroup() 
   
+
+
+colors <- 
+  tbl5 |> 
+  distinct(author_last_name,.keep_all = TRUE) |> 
+  mutate(color = scales::hue_pal()(n = n())) |> 
+  select(author_type,color) |> 
+  group_split(author_type) |> 
+  setNames(levels(unique(tbl5$author_type))) |> 
+  lapply(. %>% pull(color))
+
 tbl5_split <- split(tbl5, tbl5$author_type)
 
-colors <- scales::hue_pal()(n = length(unique(tbl5$author_last_name)))
-colors <- list(
-  "classic" = colors[1:3],
-  "modern" = colors[4:5],
-  "canon" = colors[6:7])
+# colors <- scales::hue_pal()(n = length(unique(tbl5$author_last_name)))
+# colors <- list(
+#   "classic" = colors[1:nrow(tbl5 |> 
+#                                   filter(author_type == "classic") |> 
+#                                            distinct(author_last_name))],
+#   "modern" = colors[4:7],
+#   "canon" = colors[6:9])
 
 ggplot(mapping = aes(x = years, y = n)) +
   purrr::imap(tbl5_split, function(x, y) {
@@ -161,7 +177,7 @@ ggplot(mapping = aes(x = years, y = n)) +
       new_scale("color")
     )
   }) +
-  facet_wrap(~ author_type) +
+  facet_wrap(~ author_type,nrow = 3) +
   labs(title = "The Evolution of Sociological Theory",
        caption = paste(caption,"\nSliding window of 4 years"),
        color = "",

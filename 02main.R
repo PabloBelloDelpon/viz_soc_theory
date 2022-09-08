@@ -6,7 +6,7 @@ source("scrape_scholar_function.R")
 source("helper_functions.R")
 
 ###--- Files & folders
-output_folder <- "output_data2"
+output_folder <- "output_data"
 
 ###--- Data
 jou_auth <- readRDS(here("input_data", "journals_authors.RDS"))
@@ -38,7 +38,7 @@ remDr <- rD[["client"]]
 
 
 
-for(j in 1:nrow(jou_auth)){
+for(j in 2:nrow(jou_auth)){
   
   ###--- Params
   journal  <- jou_auth[[j,"journal_name"]]

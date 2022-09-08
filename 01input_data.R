@@ -40,7 +40,11 @@ library(tidyverse)
             "Talcott","Parsons","canon",1902,1979,
             "Robert K.","Merton","canon",1910,2003,
             "James S.","Coleman","modern",1926,1995,
-            "Pierre","Bourdieu","modern",1930,2002)
+            "Pierre","Bourdieu","modern",1930,2002,
+            "Jürgen","Habermas","modern",1929,NA,
+            "Anthony","Giddens","modern",1938,NA,
+            "Karl","Marx","classic",1818,1883,
+            "W.E.B","Du Bois","classic",1868,1963)
 
   
 ###--- Put journals and authors together
