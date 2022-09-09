@@ -30,6 +30,7 @@ library(tidyverse)
     journal_tbl |> 
     left_join(journal_tbl2)
 
+saveRDS(journal_tbl,file = "lived_experience/journal_tbl.RDS")
 
 ###--- Authors
   authors_tbl <- 
