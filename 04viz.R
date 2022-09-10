@@ -6,6 +6,7 @@ library(sysfonts)
 library(showtext)
 library(ggnewscale)
 library(cowplot)
+library(scales)
 source("helpers_data_viz.R")
 
 
@@ -18,10 +19,14 @@ output_folder <- "data_viz"
 data <- readRDS(input_file)
 data  <- 
   data |> 
-  filter(! author_last_name %in% c("Coleman","Du Bois","Simmel"))
+  filter(! author_last_name %in% c("Coleman","Simmel"))
   
 ###--- Create article id
-title_id <- data |> distinct(titles, journal_abb) |> arrange(desc(titles)) |> mutate(paper_id = row_number())
+title_id <- 
+  data |> 
+  distinct(titles, journal_abb) |> 
+  arrange(desc(titles)) |> 
+  mutate(paper_id = row_number())
 
 ###--- Check the data
 data |> 
@@ -182,7 +187,8 @@ ggplot(mapping = aes(x = years, y = n)) +
        caption = paste(caption,"\nSliding window of 4 years"),
        color = "",
        x = "",
-       y = "# Articles")
+       y = "# Articles") +
+  scale_x_continuous(breaks = c(1900,1920,1940,1960,1980,2000))
 
 ggsave(paste0(output_folder,"/plot_4.png"),dpi=320)  
 

@@ -31,12 +31,27 @@ journal_tbl <-
   left_join(journal_tbl2)
 
 
-###--- Keyword
-journal_tbl <- 
-  journal_tbl |> 
-  mutate(keyword = "lived experience") |> 
+###--- Concepts
+concepts_tbl <- 
+  tribble(~keyword,
+          "lived experience",
+          "cultural schema",
+          "cultural schemas",
+          "habitus",
+          "socialization",
+          "social capital",
+          "cultural capital"
+          )
+
+###--- Put journals and authors together
+data_tbl <- 
+  expand.grid("journal_name" = unique(journal_tbl$journal_name),"keyword" = concepts_tbl$keyword) |> 
+  as_tibble() |> 
+  mutate(keyword = as.character(keyword)) |> 
+  left_join(journal_tbl) |>
   rowwise() |> 
   mutate(output = paste0(c(journal_abb,keyword,journal_site),collapse = "_"))
 
-saveRDS(journal_tbl, "lived_experience/journal_tbl.RDS")
+
+saveRDS(data_tbl, "lived_experience/journal_tbl.RDS")
 

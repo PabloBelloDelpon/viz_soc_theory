@@ -38,7 +38,7 @@ remDr <- rD[["client"]]
 
 
 
-for(j in 2:nrow(jou_auth)){
+for(j in 1:nrow(jou_auth)){
   
   ###--- Params
   journal  <- jou_auth[[j,"journal_name"]]

@@ -40,6 +40,7 @@ scrape_scholar <- function(keyword,journal,lang,year_start = NA,year_end = NA,pa
   
   ###--- Number of hits (expected number of articles, but Google gets it wrong all the time)
   hits <- check_n_hits(wp)
+  hits <- ifelse(is.na(hits) == TRUE,0,hits)
   
   ###--- Construct URL for next pages
   next_page <- page + 1

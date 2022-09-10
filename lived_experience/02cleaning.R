@@ -17,9 +17,13 @@ names(files) <- n
 ###--- Load files (into a single tibble)
 data <- 
   files |> 
-  map_dfr(readRDS,.id = "output") 
+  map_dfr(readRDS,.id = "output") |> 
+  mutate(output = str_split(output,"_")) |> 
+  mutate(output = purrr::map(output, setNames, c("journal_abb","keyword","journal_site"))) |> 
+  unnest_wider(col = output) |> 
+  mutate(keyword = if_else(keyword == "cultural schemas", "cultural schema",keyword)) ###--- Rcombine cultural schema and schemas
 
-
+  
 ###--- Merge with input data
 orig_tbl <- readRDS(original_data) 
 
@@ -46,6 +50,7 @@ data <-
   group_by(output) |> 
   distinct(titles,.keep_all = TRUE) |> 
   ungroup()
+
 
 
 ###--- Save 
