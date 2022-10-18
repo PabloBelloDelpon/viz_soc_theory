@@ -183,14 +183,16 @@ ggplot(mapping = aes(x = years, y = n)) +
     )
   }) +
   facet_wrap(~ author_type,nrow = 3) +
-  labs(title = "The Evolution of Sociological Theory",
-       caption = paste(caption,"\nSliding window of 4 years"),
+  labs(#title = "The Evolution of Sociological Theory",
+       #caption = paste(caption,"\nSliding window of 4 years"),
        color = "",
        x = "",
        y = "# Articles") +
   scale_x_continuous(breaks = c(1900,1920,1940,1960,1980,2000))
 
 ggsave(paste0(output_folder,"/plot_4.png"),dpi=320)  
+ggsave(paste0(output_folder,"/plot_4.svg"))  
+
 
 
 ###--- Measure segmentation 
@@ -242,8 +244,6 @@ seg_tbl |>
 #   mutate(div = rollmean(x = div,k = 5,fill = NA)) |> 
 #   ggplot(aes(years,div, group = 1)) +
 #   geom_line(aes(color = n_unique))
-
-
 
 
 

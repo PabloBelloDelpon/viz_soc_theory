@@ -6,6 +6,7 @@ library(cowplot)
 library(sysfonts)
 library(showtext)
 library(ggraph)
+library(ggpubr)
 source("helpers_data_viz.R")
 
 ###--- Files and folders 
@@ -15,30 +16,59 @@ output_folder <- "data_viz"
 
 ###--- Read the data
 data <- readRDS(input_file)
-title_id <- data |> distinct(titles, journal_abb) |> arrange(desc(titles)) |> mutate(paper_id = row_number())
 
+
+###---- Filter out some authors 
+data  <- 
+  data |> 
+  filter(! author_last_name %in% c("Coleman","Simmel"))
+
+###--- Filter out authors cited less than 5 times in a decade
+data <- 
+  data |>
+  group_by(author_last_name) |> 
+  mutate(decade = years - years %% 10) |> 
+  filter(decade < 2020 & decade > 1920)  |> 
+  group_by(decade, author_last_name) |> 
+  mutate(n = n()) |> 
+  filter(n >= 10) |> 
+  ungroup()
+  
+  
+###--- give a unique ID to each paper
+title_id <- 
+  data |> 
+  distinct(titles, journal_abb) |> 
+  arrange(desc(titles)) |>
+  mutate(paper_id = row_number())
+
+
+###--- Summary tibble with unique papers
 data_2 <- 
   data |> 
   left_join(title_id) |> 
   group_by(paper_id) |> 
   summarise(theorist = list(author_last_name), 
             years = unique(years),
+            decade = unique(decade),
             journal_name = unique(journal_name),
             n_theorist = n())  
 
 
-
+###--- Number of theorists by paper/journal 
 data_2 |> 
   group_by(journal_name) |> 
   summarise(mean_n = mean(n_theorist), sd(n_theorist)) |> 
   arrange(desc(mean_n))
 
 
+###--- Number of theorists by paper/journal 
 data_2 |> 
-  ggplot(aes(n_theorist)) +
+  ggplot(aes(n_theorist, fill = journal_name)) +
   geom_bar() +
- facet_wrap(~ journal_name,scales = "free_y")
-
+  facet_wrap(~ journal_name,scales = "free_y") +
+  theme_pubr(border = TRUE) +
+  theme(legend.position = "none")
 
 # ######################  PLOT 1 ######################  
 # ###----  By Journal 
@@ -76,8 +106,6 @@ data_2 |>
 edge_list <- 
   data_2 |> 
   ungroup() |>
-  mutate(decade = years - years %% 10) |> 
-  filter(decade < 2020 & decade > 1920) |> 
   select(paper_id,theorist,decade) |> 
   unnest(theorist) |>
   group_by(decade) |> 
@@ -119,6 +147,7 @@ dev.off()
 
 ######################  PLOT 3 ######################  
 ###---- By Decade
+set.seed(01)
 network_plot_set()
 
 plots <- list()
@@ -139,19 +168,28 @@ for(i in 1:length(edge_list)) {
   
   plots[[i]] <- 
     ggraph(projected_g$proj2,layout = "fr") +
+    geom_node_point(size = 3, alpha = .5) +
     geom_edge_link(aes(width = weight), color = "grey70", alpha = .5) +
     scale_edge_width(range = c(.5,4)) +
-    geom_node_text(aes(label = name, color = color), size = 7, repel = FALSE) +
+    geom_node_text(aes(label = name, color = color), size = 7, repel = .05) +
     labs(title = paste0(unique(edge_list[[i]]$decade),"'s\nN = ",names(edge_list)[i])) +
     scale_color_manual(values = c("black","red"))
   
 }
 names(plots) <- unique(data.table::rbindlist(edge_list)$decade)
 
-(plots <- plot_grid(plotlist = plots))
 
 
-title <- ggdraw() + 
+###--- Save selected network plots for the figure in the paper
+decades <- c("1950","1980","2010")
+lapply(decades,function(x) ggsave(plot = plots[[x]], paste0(output_folder,"/network_",x,".svg")))
+
+
+###--- Make a grid with all the networks
+network_plot <- plot_grid(plotlist = plots)
+
+###--- Add a title
+title <- ggdraw() +
   draw_label("Co-citation network of sociological theorists by decade",
              fontface = 'bold',
              hjust = .5,
@@ -162,9 +200,9 @@ title <- ggdraw() +
     )
 
 
-  plot_grid(title, plots,
+###--- Plot it
+plot_grid(title, network_plot,
   ncol = 1,
-  # rel_heights values control vertical title margins
   rel_heights = c(0.1, 1)
 )
 
